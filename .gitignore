@@ -1,0 +1,9 @@
+﻿# Android Studio
+android/.idea/
+
+# Local Gradle state
+android/gradle/gradle-daemon-jvm.properties
+
+# OS files
+.DS_Store
+Thumbs.db
