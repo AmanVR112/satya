@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model VerificationRequest {
+  id            String   @id @default(uuid())
+  extractedText String
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  claims        Claim[]
+}
+
+model Claim {
+  id                    String   @id @default(uuid())
+  verificationRequestId String
+
+  claim                 String
+  claimType             String
+  needsVerification     Boolean  @default(true)
+
+  createdAt             DateTime @default(now())
+
+  verificationRequest   VerificationRequest @relation(fields: [verificationRequestId], references: [id], onDelete: Cascade)
+  evidence              Evidence[]
+  @@index([verificationRequestId])
+}
+model Source {
+  id          String   @id @default(uuid())
+
+  url         String   @unique
+  title       String?
+  domain      String?
+
+  sourceType  String
+  publishedAt DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  evidence    Evidence[]
+}
+
+model Evidence {
+  id        String   @id @default(uuid())
+
+  claimId   String
+  sourceId  String
+
+  excerpt   String
+
+  relevance      String?
+  directness     String?
+  independence  String?
+  evidenceRelation String?
+
+  createdAt DateTime @default(now())
+
+  claim   Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  source  Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
+  @@index([sourceId])
+}
