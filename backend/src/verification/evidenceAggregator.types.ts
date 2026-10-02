@@ -1,9 +1,24 @@
-import { EvidenceRelation } from "../ai/evidenceAnalyzer";
+import { EvidenceRelation, EvidenceAnalysis, } from "../ai/evidenceAnalyzer";
+import { CoverageLevel } from "../ai/claimCoverageAnalyzer";
+import { ClaimCoverage, } from "../ai/claimCoverageAnalyzer";
+
+export type EvidenceAnalysisWithCoverage =
+  EvidenceAnalysis & {
+    coverage: ClaimCoverage["coverage"];
+    supportedParts: ClaimCoverage["supportedParts"];
+    unsupportedParts: ClaimCoverage["unsupportedParts"];
+    coverageExplanation: ClaimCoverage["explanation"];
+  };
 
 export interface AggregatedEvidenceItem {
   relation: EvidenceRelation;
   directness: "DIRECT" | "INDIRECT" | "NONE";
   explanation: string;
+
+  coverage: CoverageLevel;
+  supportedParts: string[];
+  unsupportedParts: string[];
+  coverageExplanation: string;
 }
 
 export interface AggregatedEvidence {
@@ -15,6 +30,14 @@ export interface AggregatedEvidence {
   contradictionCount: number;
   contextCount: number;
   irrelevantCount: number;
+
+  fullCoverageCount: number;
+  partialCoverageCount: number;
+  noCoverageCount: number;
+
+  hasFullCoverage: boolean;
+  hasPartialCoverage: boolean;
+  hasMeaningfulCoverage: boolean;
 
   hasDirectSupport: boolean;
   hasDirectContradiction: boolean;

@@ -14,6 +14,8 @@ class AssessmentEngine {
       hasDirectContradiction,
       supportCount,
       contradictionCount,
+      hasFullCoverage,
+      hasPartialCoverage,
     } = evidence;
 
     const hasMaterialDifference =
@@ -23,14 +25,27 @@ class AssessmentEngine {
       );
 
     /*
-     * Direct support + material attribute difference
+     * Direct support + direct contradiction
      *
-     * Example:
-     * Claim:    ₹5000 for every citizen
-     * Evidence: ₹5000 for eligible farmers
+     * Conflicting direct evidence cannot be
+     * confidently resolved.
+     */
+    if (
+      hasDirectSupport &&
+      hasDirectContradiction
+    ) {
+      return {
+        assessment: "UNVERIFIED",
+        explanation:
+          "The available evidence contains direct support and direct contradiction, so the claim cannot be confidently resolved.",
+      };
+    }
+
+    /*
+     * Direct support + material difference
      *
-     * The underlying event may be supported,
-     * but an important attribute has changed.
+     * The evidence supports part of the claim,
+     * but an important attribute differs.
      */
     if (
       hasDirectSupport &&
@@ -45,32 +60,39 @@ class AssessmentEngine {
     }
 
     /*
-     * Direct support and direct contradiction
-     * cannot be confidently resolved.
+     * Direct support + partial coverage
+     *
+     * The evidence supports some important parts
+     * of the claim, but does not establish the
+     * complete claim.
      */
     if (
-      hasDirectSupport &&
-      hasDirectContradiction
+      !hasDirectContradiction &&
+      hasPartialCoverage &&
+      !hasFullCoverage
     ) {
       return {
-        assessment: "UNVERIFIED",
+        assessment: "MISLEADING",
         explanation:
-          "The available evidence contains direct support and direct contradiction, so the claim cannot be confidently resolved.",
+          "The available evidence supports important parts of the claim, but does not establish the claim in its entirety.",
       };
     }
 
     /*
-     * Direct support with no material difference.
+     * Direct support + full coverage.
+     *
+     * The evidence directly supports the complete
+     * factual claim.
      */
     if (
       hasDirectSupport &&
       !hasDirectContradiction &&
-      !hasMaterialDifference
+      hasFullCoverage
     ) {
       return {
         assessment: "SUPPORTED",
         explanation:
-          "Direct evidence supports the claim and no material differences were identified.",
+          "Direct evidence supports the complete claim.",
       };
     }
 
@@ -89,6 +111,27 @@ class AssessmentEngine {
     }
 
     /*
+     * Direct support exists, but coverage is NONE.
+     *
+     * This means the evidence is related enough
+     * to be classified as supporting evidence,
+     * but the coverage analyzer could not establish
+     * any important part of the actual claim.
+     */
+    if (
+      hasDirectSupport &&
+      !hasDirectContradiction &&
+      !hasPartialCoverage &&
+      !hasFullCoverage
+    ) {
+      return {
+        assessment: "UNVERIFIED",
+        explanation:
+          "The available evidence is related to the claim but does not establish any important part of the claim.",
+      };
+    }
+
+    /*
      * No direct support or contradiction.
      */
     if (
@@ -103,7 +146,7 @@ class AssessmentEngine {
     }
 
     /*
-     * Only indirect evidence.
+     * Only indirect evidence or unresolved evidence.
      */
     return {
       assessment: "UNVERIFIED",

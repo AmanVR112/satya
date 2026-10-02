@@ -3,6 +3,7 @@ import { aiService } from "../ai/ai.service";
 import { claimDecomposer } from "../ai/claimDecomposer";
 import { evidenceAttributeExtractor } from "../ai/evidenceAttributeExtractor";
 import { evidenceAnalyzer } from "../ai/evidenceAnalyzer";
+import { claimCoverageAnalyzer } from "../ai/claimCoverageAnalyzer";
 
 import { researchService } from "../research/research.service";
 
@@ -94,6 +95,16 @@ class VerificationService {
             /*
              * STEP 6
              * Analyze every retrieved evidence item.
+             *
+             * Each evidence item now receives TWO
+             * separate analyses:
+             *
+             * 1. Evidence relationship
+             *    SUPPORTS / CONTRADICTS /
+             *    CONTEXT_ONLY / IRRELEVANT
+             *
+             * 2. Claim coverage
+             *    FULL / PARTIAL / NONE
              */
             const evidenceAnalyses = [];
 
@@ -119,15 +130,46 @@ class VerificationService {
                         evidence.excerpt
                     );
 
-                evidenceAnalyses.push(analysis);
+                /*
+                 * Determine how much of the COMPLETE
+                 * claim the evidence actually establishes.
+                 */
+                const coverage =
+                    await claimCoverageAnalyzer.analyze(
+                        claim.claim,
+                        claimAttributes,
+                        evidence.excerpt
+                    );
+
+                /*
+                 * Keep the relationship and coverage
+                 * together for this evidence item.
+                 */
+                evidenceAnalyses.push({
+                    ...analysis,
+
+                    coverage: coverage.coverage,
+
+                    supportedParts:
+                        coverage.supportedParts,
+
+                    unsupportedParts:
+                        coverage.unsupportedParts,
+
+                    coverageExplanation:
+                        coverage.explanation,
+                });
             }
 
             /*
              * STEP 7
-             * Aggregate all evidence relations.
+             * Aggregate evidence relations.
              *
-             * This happens AFTER every evidence item
-             * has been analyzed.
+             * The existing aggregator still works
+             * only with the evidence relationship data.
+             *
+             * We are intentionally NOT changing the
+             * assessment logic yet.
              */
             const aggregatedEvidence =
                 evidenceAggregator.aggregate(
@@ -138,13 +180,11 @@ class VerificationService {
              * STEP 8
              * Produce the final assessment.
              *
-             * The experimental claim/evidence comparator
-             * is intentionally not used for the assessment
-             * yet because its attribute extraction can
-             * introduce false material differences.
+             * Coverage information is currently
+             * diagnostic only.
              *
-             * Evidence relation is currently the primary
-             * signal for the assessment engine.
+             * We will update assessment logic after
+             * validating the integrated coverage results.
              */
             const assessment =
                 assessmentEngine.assess({
@@ -182,8 +222,7 @@ class VerificationService {
          * Mark the verification request as completed.
          *
          * We are not yet adding per-claim assessment
-         * fields to the database. That will come after
-         * this orchestration layer is validated.
+         * fields to the database.
          */
         await prisma.verificationRequest.update({
             where: {

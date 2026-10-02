@@ -10,6 +10,7 @@ interface TavilyResult {
     title: string;
     content: string;
     score: number;
+    published_date?: string | null;
 }
 
 interface TavilyResponse {
@@ -41,6 +42,8 @@ class ResearchService {
             body: JSON.stringify({
                 query: claim,
                 search_depth: "basic",
+                topic: "news",
+                include_answer: false,
                 max_results: 5,
             }),
         });
@@ -61,6 +64,7 @@ class ResearchService {
                     title: result.title,
                     domain: this.extractDomain(result.url),
                     sourceType: this.detectSourceType(result.url),
+                    publishedAt: result.published_date ?? undefined,
                 },
 
                 excerpt: result.content,

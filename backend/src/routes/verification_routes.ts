@@ -9,8 +9,61 @@ import { claimDecomposer } from "../ai/claimDecomposer";
 import { evidenceAttributeExtractor } from "../ai/evidenceAttributeExtractor";
 import { claimEvidenceComparator } from "../verification/claimEvidenceComparator";
 import { verificationService } from "../verification/verification.service";
+import { claimCoverageAnalyzer } from "../ai/claimCoverageAnalyzer";
 
 const router = Router();
+
+router.post(
+    "/test-claim-coverage",
+    async (req, res) => {
+        try {
+            const {
+                claim,
+                evidence,
+            } = req.body;
+
+            if (!claim || !evidence) {
+                return res.status(400).json({
+                    message:
+                        "claim and evidence are required",
+                });
+            }
+
+            const claimAttributes =
+                await claimDecomposer.decomposeClaim(
+                    claim
+                );
+
+            const result =
+                await claimCoverageAnalyzer.analyze(
+                    claim,
+                    claimAttributes,
+                    evidence
+                );
+
+            return res.json({
+                message:
+                    "Claim coverage analysis completed",
+                data: {
+                    claim,
+                    evidence,
+                    claimAttributes,
+                    coverage: result,
+                },
+            });
+        } catch (error) {
+            console.error(
+                "Claim coverage analysis error:",
+                error
+            );
+
+            return res.status(500).json({
+                message:
+                    "Claim coverage analysis failed",
+            });
+        }
+    }
+);
 
 router.post("/test-full-verification", async (req, res) => {
   try {

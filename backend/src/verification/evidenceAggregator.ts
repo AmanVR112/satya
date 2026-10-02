@@ -1,16 +1,12 @@
 import {
-  EvidenceAnalysis,
-  EvidenceRelation,
-} from "../ai/evidenceAnalyzer";
-
-import {
   AggregatedEvidence,
   AggregatedEvidenceItem,
+  EvidenceAnalysisWithCoverage,
 } from "./evidenceAggregator.types";
 
 class EvidenceAggregator {
   aggregate(
-    evidenceItems: EvidenceAnalysis[]
+    evidenceItems: EvidenceAnalysisWithCoverage[]
   ): AggregatedEvidence {
     const supportingEvidence: AggregatedEvidenceItem[] = [];
     const contradictingEvidence: AggregatedEvidenceItem[] = [];
@@ -18,34 +14,51 @@ class EvidenceAggregator {
 
     let irrelevantCount = 0;
 
+    let fullCoverageCount = 0;
+    let partialCoverageCount = 0;
+    let noCoverageCount = 0;
+
     for (const evidence of evidenceItems) {
+      const aggregatedItem: AggregatedEvidenceItem = {
+        relation: evidence.relation,
+        directness: evidence.directness,
+        explanation: evidence.explanation,
+
+        coverage: evidence.coverage,
+        supportedParts: evidence.supportedParts,
+        unsupportedParts: evidence.unsupportedParts,
+        coverageExplanation: evidence.coverageExplanation,
+      };
+
       switch (evidence.relation) {
         case "SUPPORTS":
-          supportingEvidence.push({
-            relation: evidence.relation,
-            directness: evidence.directness,
-            explanation: evidence.explanation,
-          });
+          supportingEvidence.push(aggregatedItem);
           break;
 
         case "CONTRADICTS":
-          contradictingEvidence.push({
-            relation: evidence.relation,
-            directness: evidence.directness,
-            explanation: evidence.explanation,
-          });
+          contradictingEvidence.push(aggregatedItem);
           break;
 
         case "CONTEXT_ONLY":
-          contextualEvidence.push({
-            relation: evidence.relation,
-            directness: evidence.directness,
-            explanation: evidence.explanation,
-          });
+          contextualEvidence.push(aggregatedItem);
           break;
 
         case "IRRELEVANT":
           irrelevantCount++;
+          break;
+      }
+
+      switch (evidence.coverage) {
+        case "FULL":
+          fullCoverageCount++;
+          break;
+
+        case "PARTIAL":
+          partialCoverageCount++;
+          break;
+
+        case "NONE":
+          noCoverageCount++;
           break;
       }
     }
@@ -61,6 +74,15 @@ class EvidenceAggregator {
     const hasConflictingEvidence =
       hasDirectSupport && hasDirectContradiction;
 
+    const hasFullCoverage =
+      fullCoverageCount > 0;
+
+    const hasPartialCoverage =
+      partialCoverageCount > 0;
+
+    const hasMeaningfulCoverage =
+      hasFullCoverage || hasPartialCoverage;
+
     return {
       supportingEvidence,
       contradictingEvidence,
@@ -70,6 +92,14 @@ class EvidenceAggregator {
       contradictionCount: contradictingEvidence.length,
       contextCount: contextualEvidence.length,
       irrelevantCount,
+
+      fullCoverageCount,
+      partialCoverageCount,
+      noCoverageCount,
+
+      hasFullCoverage,
+      hasPartialCoverage,
+      hasMeaningfulCoverage,
 
       hasDirectSupport,
       hasDirectContradiction,

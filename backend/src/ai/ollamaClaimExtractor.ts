@@ -52,29 +52,151 @@ Allowed claimType values:
 - QUESTION
 - OTHER
 
-Rules:
+CORE PRINCIPLE:
+
+A claim should represent a complete verifiable statement or event.
+
+Do NOT split one real-world event into multiple smaller claims merely
+because the sentence contains multiple attributes such as:
+
+- subject
+- action
+- date
+- location
+- amount
+- cause
+- condition
+- population
+- status
+
+If these attributes describe the SAME underlying event or assertion,
+keep them together as ONE claim.
+
+For example:
+
+"banks will remain closed due to a strike on 28-30 September 2026 in India"
+
+MUST remain ONE claim:
+
+"banks will remain closed due to a strike on 28-30 September 2026 in India"
+
+Do NOT split it into:
+
+"banks will remain closed"
+"the cause is a strike"
+"the dates are 28-30 September 2026"
+"the location is India"
+
+Those are attributes of the same event, not independent claims.
+
+Another example:
+
+"The Indian government announced a ₹5000 payment for every citizen
+starting in October."
+
+This is ONE claim because the amount, population, timing, subject,
+and action all describe the same announcement.
+
+Only split text when it contains genuinely independent factual
+assertions about different events, subjects, or propositions.
+
+For example:
+
+"The government announced a ₹5000 payment.
+The central bank raised interest rates."
+
+These should be TWO claims because they describe separate events.
+
+RULES:
 
 1. FACTUAL
+
 Use FACTUAL for statements that assert something about the real world
 and could potentially be checked against evidence.
 
+CAUSAL CLAIMS ARE ALSO FACTUAL:
+
+A statement that claims one real-world event caused, led to, resulted
+in, contributed to, or was responsible for another real-world event
+is FACTUAL when the causal relationship could potentially be checked
+against evidence.
+
+Causal language includes:
+
+- because
+- due to
+- caused by
+- caused
+- led to
+- resulted in
+- resulted from
+- contributed to
+- responsible for
+- reason for
+- as a result of
+- driven by
+- attributed to
+
+Examples:
+
+"RAM prices increased because AI companies bought large amounts
+of memory."
+
+→ FACTUAL
+
+"Gold prices fell due to increased interest rates."
+
+→ FACTUAL
+
+"AI demand caused SSD prices to increase."
+
+→ FACTUAL
+
+"The strike caused banks to close."
+
+→ FACTUAL
+
+Do NOT classify a causal claim as OPINION merely because the causal
+relationship is uncertain, debatable, or difficult to verify.
+
+If the statement makes a testable assertion about what caused a
+real-world event, classify it as FACTUAL.
+
+For example:
+
+"AI companies caused RAM prices to increase."
+
+→ FACTUAL
+
+The fact that the causal claim may later turn out to be unsupported,
+partially supported, or contradicted does NOT make it an OPINION.
+
+The verification pipeline should determine whether the causal claim
+is supported by evidence.
+
 2. OPINION
+
 Use OPINION only when the text expresses a belief, judgment,
 preference, or subjective view.
 
 3. QUESTION
+
 Use QUESTION when the text is asking a question rather than making
 a factual assertion.
 
 4. OTHER
+
 Use OTHER for instructions, commands, calls-to-action, greetings,
 advertising language, or text that is not a claim.
 
 5. Do NOT turn instructions into factual claims.
+
 For example:
+
 "Apply before midnight."
 "Share this message."
 "Click this link."
+
 These are instructions and should normally be OTHER with
 needsVerification set to false.
 
@@ -82,16 +204,75 @@ needsVerification set to false.
 
 7. Preserve the meaning of the original text.
 
-8. Split clearly separate factual claims when appropriate.
+8. Preserve the complete factual context of a claim.
 
-9. A factual claim that could be checked should have:
+When a factual statement contains important details about the same
+event, preserve those details in the claim text.
+
+Important details include:
+
+- who or what is involved
+- what happened
+- where it happened
+- when it happened
+- how much
+- who is affected
+- why it happened
+- conditions
+- whether something was proposed, announced, approved,
+  implemented, completed, planned, or reported
+
+9. Split clearly independent factual claims only when they describe
+different events, subjects, actions, or propositions.
+
+10. Do NOT split a claim merely because it contains:
+
+- "and"
+- "because"
+- "due to"
+- "from ... to ..."
+- a date
+- a location
+- an amount
+- a condition
+- a reason
+- a population
+
+These may simply be attributes of the same underlying claim.
+
+11. A factual claim that could be checked should have:
+
 needsVerification: true
 
-10. Opinions, questions, instructions, and other non-verifiable text
+12. Opinions, questions, instructions, and other non-verifiable text
 should normally have:
+
 needsVerification: false
 
-11. Return ONLY JSON.
+13. Do not convert predictions into ordinary factual claims simply
+because they contain a future date.
+
+If a statement is fundamentally a prediction, keep its meaning intact
+rather than pretending that the predicted event has already happened.
+
+14. Do not infer missing information.
+
+15. Do not add explanations, corrections, assumptions, or outside
+knowledge.
+
+16. The claim text should remain faithful to the original text.
+
+17. Before splitting a sentence, ask:
+
+"Are these separate facts, or are they multiple attributes of the
+same real-world event?"
+
+If they describe the same event, KEEP THEM TOGETHER.
+
+18. Return claims in the order in which they appear in the text.
+
+19. Return ONLY JSON.
+
 Do not return markdown.
 Do not return explanations.
 Do not return reasoning.
@@ -133,7 +314,9 @@ Do not return reasoning.
         }
 
         if (!Array.isArray(parsed.claims)) {
-            throw new Error("Ollama response does not contain a claims array");
+            throw new Error(
+                "Ollama response does not contain a claims array"
+            );
         }
 
         return parsed.claims;
