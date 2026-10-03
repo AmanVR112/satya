@@ -4,6 +4,7 @@ import { claimDecomposer } from "../ai/claimDecomposer";
 import { evidenceAttributeExtractor } from "../ai/evidenceAttributeExtractor";
 import { evidenceAnalyzer } from "../ai/evidenceAnalyzer";
 import { claimCoverageAnalyzer } from "../ai/claimCoverageAnalyzer";
+import { temporalResolver } from "../ai/temporalResolver";
 
 import { researchService } from "../research/research.service";
 
@@ -142,22 +143,99 @@ class VerificationService {
                     );
 
                 /*
+                 * Determine the temporal state described
+                 * by this evidence and whether it explicitly
+                 * changes the state of the claim.
+                 */
+
+                const temporal =
+                    await temporalResolver.resolve(
+                        claim.claim,
+                        evidence.excerpt,
+                        evidence.source.publishedAt
+                    );
+
+                /*
+* Deterministic temporal safety guard.
+*
+* If the evidence describes a planned/scheduled/expected
+* event and does not explicitly change the claim state,
+* it must not be treated as a contradiction.
+*
+* The LLM evidence analyzer can otherwise incorrectly use
+* nearby dates or future plans as contradictions.
+*/
+                let normalizedAnalysis = analysis;
+
+                if (
+                    analysis.relation === "CONTRADICTS" &&
+                    (
+                        temporal.state === "PLANNED" ||
+                        temporal.state === "SCHEDULED" ||
+                        temporal.state === "EXPECTED"
+                    ) &&
+                    temporal.changesClaimState === false
+                ) {
+                    normalizedAnalysis = {
+                        ...analysis,
+                        relation: "CONTEXT_ONLY",
+                        directness: "NONE",
+                        explanation:
+                            "The evidence describes a planned, scheduled, or expected event without explicitly changing the claim state, so it cannot be treated as a contradiction.",
+                    };
+                }
+
+                let normalizedCoverage = coverage;
+
+                if (
+                    coverage.coverage === "FULL" &&
+                    (
+                        temporal.state === "PLANNED" ||
+                        temporal.state === "SCHEDULED" ||
+                        temporal.state === "EXPECTED"
+                    ) &&
+                    temporal.changesClaimState === false
+                ) {
+                    normalizedCoverage = {
+                        ...coverage,
+                        coverage: "PARTIAL",
+                        unsupportedParts: [
+                            ...coverage.unsupportedParts,
+                            "future/planned status is not yet established",
+                        ],
+                        explanation:
+                            `${coverage.explanation} However, the evidence describes the event as planned, scheduled, or expected rather than establishing the future state as confirmed.`,
+                    };
+                }
+                /*
                  * Keep the relationship and coverage
                  * together for this evidence item.
                  */
                 evidenceAnalyses.push({
-                    ...analysis,
+                    ...normalizedAnalysis,
 
-                    coverage: coverage.coverage,
+                    coverage: normalizedCoverage.coverage,
 
                     supportedParts:
-                        coverage.supportedParts,
+                        normalizedCoverage.supportedParts,
 
                     unsupportedParts:
-                        coverage.unsupportedParts,
+                        normalizedCoverage.unsupportedParts,
 
                     coverageExplanation:
-                        coverage.explanation,
+                        normalizedCoverage.explanation,
+
+                    temporalState:
+                        temporal.state,
+
+                    temporalChangesClaimState:
+                        temporal.changesClaimState,
+
+                    temporalExplanation:
+                        temporal.explanation,
+
+                    publishedAt:
+                        evidence.source.publishedAt,
                 });
             }
 

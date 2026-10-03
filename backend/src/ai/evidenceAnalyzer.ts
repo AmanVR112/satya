@@ -320,6 +320,51 @@ establish that it actually occurred.
 Only explicit evidence of the actual state or an explicit state
 change should determine SUPPORTS or CONTRADICTS.
 
+CRITICAL TEMPORAL RELATION RULE:
+
+If the claim describes a future event or future state for a specific
+date or date range, evidence that merely describes the event as
+planned, proposed, scheduled, or expected MUST NOT be classified as
+CONTRADICTS.
+
+Such evidence may SUPPORT the claim if it directly establishes the
+planned event, or CONTEXT_ONLY if it only describes the plan without
+establishing the claimed outcome.
+
+A planned or expected event is not evidence of the opposite state.
+
+For example:
+
+CLAIM:
+"Banks will remain closed on September 28-30, 2026."
+
+EVIDENCE:
+"The proposed three-day bank strike will take place September 28-30."
+
+Correct:
+SUPPORTS or CONTEXT_ONLY
+
+Incorrect:
+CONTRADICTS
+
+Likewise:
+
+CLAIM:
+"Banks will remain closed on September 28-30, 2026."
+
+EVIDENCE:
+"Banks were open on September 27, 2026."
+
+Correct:
+CONTEXT_ONLY
+
+Incorrect:
+CONTRADICTS
+
+Only explicit evidence that banks will be open during September 28-30,
+or that the strike was cancelled/deferred/called off for September 28-30,
+can CONTRADICT the claim.
+
 4. DATE RANGE AND PARTIAL OVERLAP
 
 If a claim concerns a date range, determine whether the evidence

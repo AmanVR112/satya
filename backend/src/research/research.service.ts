@@ -21,6 +21,18 @@ class ResearchService {
     private readonly tavilyUrl =
         "https://api.tavily.com/search";
 
+    private buildVerificationQuery(claim: string): string {
+        return `${claim}
+
+Verify this specific real-world claim.
+Focus on the exact event, people or organizations involved,
+location, date, and current status.
+Prefer primary, official, government, institutional,
+fact-checking, and reputable news sources.
+Ignore unrelated events in other countries or different dates.
+`;
+    }
+
     async searchClaim(
         claimId: string,
         claim: string
@@ -31,20 +43,24 @@ class ResearchService {
             throw new Error("TAVILY_API_KEY is not configured");
         }
 
+        const verificationQuery = this.buildVerificationQuery(claim);
+
+        console.log("\n=== TAVILY SEARCH ===");
+        console.log("Original claim:", claim);
+        console.log("Verification query:", verificationQuery);
+
         const response = await fetch(this.tavilyUrl, {
             method: "POST",
-
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${apiKey}`,
             },
-
             body: JSON.stringify({
-                query: claim,
-                search_depth: "basic",
+                query: verificationQuery,
+                search_depth: "advanced",
                 topic: "news",
                 include_answer: false,
-                max_results: 5,
+                max_results: 8,
             }),
         });
 
@@ -64,20 +80,24 @@ class ResearchService {
                     title: result.title,
                     domain: this.extractDomain(result.url),
                     sourceType: this.detectSourceType(result.url),
-                    publishedAt: result.published_date ?? undefined,
+                    publishedAt:
+                        result.published_date ?? undefined,
                 },
-
                 excerpt: result.content,
-
-                relevance:
-                    result.score >= 0.2
-                        ? "HIGH"
-                        : "MEDIUM",
-
+                relevance: "UNKNOWN",
                 directness: "UNKNOWN",
-
                 independence: "UNKNOWN",
             }));
+
+        console.log(
+            `Tavily returned ${evidence.length} results`
+        );
+
+        evidence.forEach((item, index) => {
+            console.log(
+                `${index + 1}. ${item.source.title} | ${item.source.domain}`
+            );
+        });
 
         await this.saveEvidence(claimId, evidence);
 
