@@ -12,6 +12,82 @@ import { evidenceAggregator } from "./evidenceAggregator";
 import { assessmentEngine } from "./assessmentEngine";
 
 class VerificationService {
+    private resolveTemporalConflicts(
+        evidenceAnalyses: any[]
+    ): any[] {
+        const stateChangingStates = new Set([
+            "CANCELLED",
+            "CALLED_OFF",
+            "DEFERRED",
+            "POSTPONED",
+        ]);
+
+        const stateChangingEvidence = evidenceAnalyses
+            .filter(
+                (evidence) =>
+                    stateChangingStates.has(
+                        evidence.temporalState
+                    ) &&
+                    evidence.temporalChangesClaimState === true &&
+                    evidence.publishedAt
+            )
+            .sort(
+                (a, b) =>
+                    new Date(a.publishedAt).getTime() -
+                    new Date(b.publishedAt).getTime()
+            );
+
+        if (stateChangingEvidence.length === 0) {
+            return evidenceAnalyses;
+        }
+
+        const latestStateChange =
+            stateChangingEvidence[
+            stateChangingEvidence.length - 1
+            ];
+
+        const latestStateChangeDate =
+            new Date(latestStateChange.publishedAt).getTime();
+
+        return evidenceAnalyses.map((evidence) => {
+            if (
+                evidence === latestStateChange
+            ) {
+                return evidence;
+            }
+
+            if (
+                !evidence.publishedAt ||
+                new Date(evidence.publishedAt).getTime() >=
+                latestStateChangeDate
+            ) {
+                return evidence;
+            }
+
+            if (
+                evidence.temporalState === "PLANNED" ||
+                evidence.temporalState === "SCHEDULED" ||
+                evidence.temporalState === "EXPECTED"
+            ) {
+                return {
+                    ...evidence,
+                    relation:
+                        evidence.relation === "SUPPORTS"
+                            ? "CONTEXT_ONLY"
+                            : evidence.relation,
+                    directness:
+                        evidence.relation === "SUPPORTS"
+                            ? "NONE"
+                            : evidence.directness,
+                    explanation:
+                        `${evidence.explanation} ` +
+                        `This evidence describes an earlier planned or scheduled state that was later superseded by explicit ${latestStateChange.temporalState.toLowerCase()} evidence published on ${latestStateChange.publishedAt}.`,
+                };
+            }
+
+            return evidence;
+        });
+    }
     async verifyText(text: string) {
         /*
          * STEP 1
@@ -207,6 +283,84 @@ class VerificationService {
                             `${coverage.explanation} However, the evidence describes the event as planned, scheduled, or expected rather than establishing the future state as confirmed.`,
                     };
                 }
+
+                /*
+ * Deterministic relationship/coverage consistency guard.
+ *
+ * Coverage is an independent measure of how much of the claim
+ * the evidence establishes.
+ *
+ * If the evidence explicitly establishes the complete claim,
+ * it cannot simultaneously be IRRELEVANT.
+ *
+ * This protects against an LLM relationship-classification error
+ * overriding a clear FULL coverage result.
+ */
+                if (
+                    normalizedCoverage.coverage === "FULL" &&
+                    normalizedCoverage.supportedParts.length > 0 &&
+                    (
+                        normalizedAnalysis.relation === "IRRELEVANT" ||
+                        normalizedAnalysis.relation === "CONTEXT_ONLY"
+                    )
+                ) {
+                    normalizedAnalysis = {
+                        ...normalizedAnalysis,
+                        relation: "SUPPORTS",
+                        directness: "DIRECT",
+                        explanation:
+                            `${normalizedAnalysis.explanation} ` +
+                            `The coverage analysis explicitly establishes the complete claim, so the evidence is treated as supporting evidence.`,
+                    };
+                }
+
+                /*
+ * Deterministic evidence consistency guards.
+ *
+ * The LLM must not be allowed to:
+ * 1. Mark evidence as CONTRADICTS when its own explanation says
+ *    the claim is not contradicted.
+ * 2. Mark explicit evidence as CONTEXT_ONLY/IRRELEVANT when the
+ *    evidence directly states the claim.
+ */
+
+                // Guard 1: prevent self-contradictory contradiction classifications.
+                if (
+                    normalizedAnalysis.relation === "CONTRADICTS" &&
+                    normalizedCoverage.coverage === "NONE" &&
+                    /not contradicted|does not contradict|no contradiction/i.test(
+                        normalizedAnalysis.explanation
+                    )
+                ) {
+                    normalizedAnalysis = {
+                        ...normalizedAnalysis,
+                        relation: "CONTEXT_ONLY",
+                        directness: "NONE",
+                        explanation:
+                            `${normalizedAnalysis.explanation} ` +
+                            `The analysis explicitly states that the evidence does not contradict the claim, so the contradiction classification was normalized to contextual evidence.`,
+                    };
+                }
+
+                // Guard 2: explicit evidence of the complete claim is support.
+                if (
+                    normalizedCoverage.coverage === "FULL" &&
+                    normalizedCoverage.supportedParts.length > 0 &&
+                    (
+                        normalizedAnalysis.relation === "IRRELEVANT" ||
+                        normalizedAnalysis.relation === "CONTEXT_ONLY"
+                    )
+                ) {
+                    normalizedAnalysis = {
+                        ...normalizedAnalysis,
+                        relation: "SUPPORTS",
+                        directness: "DIRECT",
+                        explanation:
+                            `${normalizedAnalysis.explanation} ` +
+                            `The coverage analysis explicitly establishes the complete claim, so the evidence is treated as supporting evidence.`,
+                    };
+                }
+
                 /*
                  * Keep the relationship and coverage
                  * together for this evidence item.
@@ -249,9 +403,14 @@ class VerificationService {
              * We are intentionally NOT changing the
              * assessment logic yet.
              */
+            const temporallyResolvedEvidence =
+                this.resolveTemporalConflicts(
+                    evidenceAnalyses
+                );
+
             const aggregatedEvidence =
                 evidenceAggregator.aggregate(
-                    evidenceAnalyses
+                    temporallyResolvedEvidence
                 );
 
             /*

@@ -115,6 +115,32 @@ Important claim attributes may include:
 
 1. SUPPORTS
 
+SUPPORTS does not require the evidence to state the claim verbatim.
+
+Valid explicit logical entailment may be SUPPORTS even when
+the relationship is INDIRECT.
+
+Example:
+
+CLAIM:
+"The Earth orbits the Sun."
+
+EVIDENCE:
+"Earth is a planet. Planets are bodies that revolve around
+the Sun."
+
+Correct relation:
+SUPPORTS
+
+Correct directness:
+INDIRECT
+
+The evidence explicitly establishes the claim through a valid
+logical relationship.
+
+Do NOT classify valid indirect logical entailment as
+CONTEXT_ONLY merely because the exact claim wording is absent.
+
 Use SUPPORTS when the evidence directly establishes or confirms
 the claim for the same underlying subject, event, or situation.
 
@@ -130,6 +156,67 @@ September 28-30, 2026."
 EVIDENCE:
 "A nationwide bank strike is scheduled for September 28-30, 2026
 and banks will remain closed during the strike."
+
+IMPORTANT — SUPPORTS DOES NOT REQUIRE VERBATIM WORDING:
+
+Evidence may SUPPORT a claim even when it does not state
+the exact claim sentence verbatim.
+
+If the evidence explicitly establishes a valid logical
+relationship that entails the claim, classify it as SUPPORTS.
+
+When the claim is established through such a logical
+relationship rather than an explicit statement of the exact
+claim, use:
+
+relation = SUPPORTS
+directness = INDIRECT
+
+If the logical relationship establishes every important
+factual component of the claim, coverage must be FULL.
+
+Do NOT classify such evidence as CONTEXT_ONLY merely because
+the exact claim wording is absent.
+
+Do NOT classify it as PARTIAL when the logical relationship
+fully establishes the claim.
+
+Example:
+
+Claim:
+"The Earth orbits the Sun."
+
+Evidence:
+"Earth is a planet. Planets are bodies that revolve around
+the Sun."
+
+Correct classification:
+relation = SUPPORTS
+directness = INDIRECT
+coverage = FULL
+
+Reason:
+The evidence establishes that Earth belongs to the class of
+planets, and explicitly defines planets as bodies that
+revolve around the Sun. Therefore the evidence logically
+establishes that Earth revolves around the Sun.
+
+The evidence does not need to contain the exact sentence
+"The Earth orbits the Sun."
+
+Another example:
+
+Claim:
+"Water freezes at 0°C under standard atmospheric pressure."
+
+Evidence:
+"At standard atmospheric pressure, water's freezing point
+is 0°C."
+
+Correct classification:
+relation = SUPPORTS
+directness = DIRECT
+coverage = FULL
 
 Correct relation:
 SUPPORTS
@@ -731,6 +818,18 @@ Before returning SUPPORTS, ask:
 5. Are important amounts, populations, conditions, and statuses
    compatible?
 
+A claim may be established through explicit logical entailment
+even when the exact claim sentence does not appear in the
+evidence.
+
+For valid logical entailment:
+- use SUPPORTS;
+- use INDIRECT directness;
+- use FULL coverage when all important factual components
+  are established.
+
+Do not require verbatim wording for SUPPORTS.
+
 If the evidence does not establish the specific claim, use
 CONTEXT_ONLY or IRRELEVANT instead.
 
@@ -929,8 +1028,17 @@ contradiction.
 
 If the evidence supports only part of a claim, classify the
 relationship as SUPPORTS only when the supported part is a
-meaningful direct assertion of the claim; otherwise use
-CONTEXT_ONLY.
+meaningful assertion of the claim.
+
+The assertion does NOT need to be verbatim or directly stated.
+
+If the evidence establishes the claim through a valid explicit
+logical relationship, SUPPORTS is allowed with INDIRECT
+directness.
+
+If that logical relationship establishes all important factual
+components of the claim, the coverage is FULL rather than
+PARTIAL.
 
 Never convert:
 
@@ -1284,7 +1392,12 @@ ${evidence}
         "Ollama returned no evidence explanation"
       );
     }
-
+    if (
+      parsed.relation === "CONTRADICTS" &&
+      parsed.directness !== "DIRECT"
+    ) {
+      parsed.directness = "DIRECT";
+    }
     return {
       relation: parsed.relation,
       directness: parsed.directness,

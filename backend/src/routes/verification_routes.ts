@@ -14,55 +14,55 @@ import { claimCoverageAnalyzer } from "../ai/claimCoverageAnalyzer";
 const router = Router();
 
 router.post(
-    "/test-claim-coverage",
-    async (req, res) => {
-        try {
-            const {
-                claim,
-                evidence,
-            } = req.body;
+  "/test-claim-coverage",
+  async (req, res) => {
+    try {
+      const {
+        claim,
+        evidence,
+      } = req.body;
 
-            if (!claim || !evidence) {
-                return res.status(400).json({
-                    message:
-                        "claim and evidence are required",
-                });
-            }
+      if (!claim || !evidence) {
+        return res.status(400).json({
+          message:
+            "claim and evidence are required",
+        });
+      }
 
-            const claimAttributes =
-                await claimDecomposer.decomposeClaim(
-                    claim
-                );
+      const claimAttributes =
+        await claimDecomposer.decomposeClaim(
+          claim
+        );
 
-            const result =
-                await claimCoverageAnalyzer.analyze(
-                    claim,
-                    claimAttributes,
-                    evidence
-                );
+      const result =
+        await claimCoverageAnalyzer.analyze(
+          claim,
+          claimAttributes,
+          evidence
+        );
 
-            return res.json({
-                message:
-                    "Claim coverage analysis completed",
-                data: {
-                    claim,
-                    evidence,
-                    claimAttributes,
-                    coverage: result,
-                },
-            });
-        } catch (error) {
-            console.error(
-                "Claim coverage analysis error:",
-                error
-            );
+      return res.json({
+        message:
+          "Claim coverage analysis completed",
+        data: {
+          claim,
+          evidence,
+          claimAttributes,
+          coverage: result,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "Claim coverage analysis error:",
+        error
+      );
 
-            return res.status(500).json({
-                message:
-                    "Claim coverage analysis failed",
-            });
-        }
+      return res.status(500).json({
+        message:
+          "Claim coverage analysis failed",
+      });
     }
+  }
 );
 
 router.post("/test-full-verification", async (req, res) => {
@@ -284,24 +284,45 @@ router.post("/test-evidence-analysis", async (req, res) => {
 
 router.post("/test-research", async (req, res) => {
   try {
-    const { claimId, claim } = req.body;
+    const { claim } = req.body;
 
-    if (!claimId || !claim) {
+    if (!claim || typeof claim !== "string") {
       return res.status(400).json({
-        message:
-          "claimId and claim are required",
+        message: "claim is required",
       });
     }
 
+    const verificationRequest =
+      await prisma.verificationRequest.create({
+        data: {
+          extractedText: claim,
+        },
+      });
+
+    const testClaim =
+      await prisma.claim.create({
+        data: {
+          verificationRequestId:
+            verificationRequest.id,
+          claim,
+          claimType: "FACTUAL",
+          needsVerification: true,
+        },
+      });
+
     const result =
       await researchService.searchClaim(
-        claimId,
+        testClaim.id,
         claim
       );
 
     return res.status(200).json({
       message: "Research completed",
-      data: result,
+      data: {
+        claimId: testClaim.id,
+        claim,
+        research: result,
+      },
     });
   } catch (error) {
     console.error(

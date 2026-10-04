@@ -67,6 +67,7 @@ class AssessmentEngine {
      * complete claim.
      */
     if (
+      hasDirectSupport &&
       !hasDirectContradiction &&
       hasPartialCoverage &&
       !hasFullCoverage
@@ -79,20 +80,25 @@ class AssessmentEngine {
     }
 
     /*
-     * Direct support + full coverage.
-     *
-     * The evidence directly supports the complete
-     * factual claim.
-     */
+ * Support + full coverage.
+ *
+ * The evidence may establish the complete claim
+ * either directly or through valid indirect logical
+ * entailment. Direct wording is not required when
+ * the coverage analyzer confirms that the important
+ * factual components are fully established.
+ */
     if (
-      hasDirectSupport &&
+      supportCount > 0 &&
       !hasDirectContradiction &&
       hasFullCoverage
     ) {
       return {
         assessment: "SUPPORTED",
         explanation:
-          "Direct evidence supports the complete claim.",
+          hasDirectSupport
+            ? "Direct evidence supports the complete claim."
+            : "The available evidence logically establishes the complete claim.",
       };
     }
 

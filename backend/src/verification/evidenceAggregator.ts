@@ -55,9 +55,20 @@ class EvidenceAggregator {
 
       switch (evidence.relation) {
         case "SUPPORTS":
-          supportingEvidence.push(
-            aggregatedItem
-          );
+          if (evidence.coverage === "FULL") {
+            supportingEvidence.push(
+              aggregatedItem
+            );
+          } else {
+            contextualEvidence.push({
+              ...aggregatedItem,
+              relation: "CONTEXT_ONLY",
+              directness: "NONE",
+              explanation:
+                `${evidence.explanation} ` +
+                `The evidence does not provide full coverage of the claim, so it is retained as contextual evidence rather than counted as meaningful support.`,
+            });
+          }
           break;
 
         case "CONTRADICTS":

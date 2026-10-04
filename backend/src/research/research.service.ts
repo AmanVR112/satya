@@ -22,14 +22,16 @@ class ResearchService {
         "https://api.tavily.com/search";
 
     private buildVerificationQuery(claim: string): string {
-        return `${claim}
+        return `"${claim}"
 
-Verify this specific real-world claim.
-Focus on the exact event, people or organizations involved,
-location, date, and current status.
-Prefer primary, official, government, institutional,
-fact-checking, and reputable news sources.
-Ignore unrelated events in other countries or different dates.
+Verify this specific factual claim.
+Find evidence that directly establishes or contradicts the exact claim.
+Prefer primary, official, government, institutional, scientific,
+fact-checking, and reputable sources.
+Match the exact subject, action, object, location, date,
+quantity, condition, and status when those details are present.
+Do not substitute related facts for the specific claim.
+Ignore unrelated events, entities, dates, or topics.
 `;
     }
 
@@ -58,7 +60,6 @@ Ignore unrelated events in other countries or different dates.
             body: JSON.stringify({
                 query: verificationQuery,
                 search_depth: "advanced",
-                topic: "news",
                 include_answer: false,
                 max_results: 8,
             }),
