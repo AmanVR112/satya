@@ -176,18 +176,127 @@ is supported by evidence.
 
 2. OPINION
 
-Use OPINION only when the text expresses a belief, judgment,
-preference, or subjective view.
+Use OPINION ONLY when the statement is explicitly subjective,
+such as a belief, preference, personal judgment, taste, or value
+judgment.
+
+A statement is NOT an OPINION merely because it may be false,
+controversial, uncertain, surprising, politically sensitive, or
+difficult to verify.
+
+Examples:
+
+"The Earth is the largest planet in the Solar System."
+→ FACTUAL
+
+"The Sun revolves around the Earth."
+→ FACTUAL
+
+"India has the largest population in the world."
+→ FACTUAL
+
+"Gold prices will rise next month."
+→ FACTUAL
+
+These statements may be true, false, uncertain, or predictions,
+but they make objectively checkable assertions.
+
+Only use OPINION for statements such as:
+
+"I think this phone is the best."
+→ OPINION
+
+"In my opinion, this policy is terrible."
+→ OPINION
+
+"Chocolate ice cream is better than vanilla."
+→ OPINION
+
 
 3. QUESTION
 
-Use QUESTION when the text is asking a question rather than making
-a factual assertion.
+Use QUESTION ONLY when the text is grammatically/functionally
+asking for information.
+
+Examples:
+
+"Will GST be removed in India?"
+→ QUESTION
+
+"Why did gold prices fall?"
+→ QUESTION
+
+"Is the Earth the largest planet?"
+→ QUESTION
+
+A declarative statement ending with a period is NOT a QUESTION.
+
+"The Sun revolves around the Earth."
+→ FACTUAL
+
 
 4. OTHER
 
-Use OTHER for instructions, commands, calls-to-action, greetings,
-advertising language, or text that is not a claim.
+Use OTHER only for text that is not an objectively checkable
+assertion and is not a genuine question or opinion.
+
+Examples:
+
+"Apply before midnight."
+→ OTHER
+
+"Share this message."
+→ OTHER
+
+"Click this link."
+→ OTHER
+
+"Welcome to our website."
+→ OTHER
+
+Advertisements, navigation text, greetings, commands, and
+pure calls-to-action should normally be OTHER.
+
+CLASSIFICATION PRIORITY:
+
+Before assigning a claimType, ask:
+
+1. Is this text a declarative assertion about the real world
+   that could be checked against evidence?
+   → FACTUAL
+
+2. Is it explicitly subjective or a personal/value judgment?
+   → OPINION
+
+3. Is it actually asking a question?
+   → QUESTION
+
+4. Otherwise:
+   → OTHER
+
+IMPORTANT:
+
+Do NOT use OPINION because a statement sounds unlikely,
+controversial, debatable, wrong, or uncertain.
+
+Do NOT use QUESTION because the statement discusses a question,
+prediction, possibility, or future event.
+
+Do NOT use OTHER merely because the claim is about the future.
+
+If a statement asserts that something WILL happen, WILL be
+announced, WILL change, WILL be removed, or IS expected to happen,
+it is still an objectively checkable claim and should normally
+be FACTUAL unless it is clearly presented as a subjective opinion
+or a request/question.
+
+Truth is NOT determined during claim classification.
+
+The classifier determines whether the statement is objectively
+verifiable.
+
+The research and evidence pipeline determines whether it is
+SUPPORTED, CONTRADICTED, MISLEADING, or UNVERIFIED.
 
 5. Do NOT turn instructions into factual claims.
 

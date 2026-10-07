@@ -117,6 +117,103 @@ Important claim attributes may include:
 
 SUPPORTS does not require the evidence to state the claim verbatim.
 
+CRITICAL DISTINCTION — CLAIM MENTION IS NOT CLAIM SUPPORT:
+
+The evidence containing the same words as the claim does NOT by
+itself mean the evidence SUPPORTS the claim.
+
+First determine HOW the claim appears in the evidence.
+
+If the claim is:
+
+- quoted from another person or source,
+- presented as a historical belief,
+- presented as a misconception,
+- presented as an example,
+- presented as a question,
+- presented as a hypothetical,
+- presented as a disputed allegation,
+- presented as something someone falsely believes,
+- presented as a claim that the article is criticizing or debunking,
+
+then the mere presence of the claim text is NOT SUPPORTS.
+
+Instead, evaluate the surrounding context.
+
+Examples:
+
+CLAIM:
+"The Sun revolves around the Earth."
+
+EVIDENCE:
+"Ancient astronomers believed that the Sun revolved around
+the Earth, but this view was later replaced by the heliocentric
+model."
+
+Correct relation:
+CONTEXT_ONLY
+
+Reason:
+The evidence describes a historical belief and does not assert
+that the claim is true.
+
+---
+
+CLAIM:
+"The Sun revolves around the Earth."
+
+EVIDENCE:
+"Some people falsely claim that the Sun revolves around Earth.
+Modern astronomy shows that Earth orbits the Sun."
+
+Correct relation:
+CONTRADICTS
+
+Reason:
+The evidence explicitly identifies the claim as false and provides
+the incompatible astronomical relationship.
+
+---
+
+CLAIM:
+"The Sun revolves around the Earth."
+
+EVIDENCE:
+"Statement A: The Sun revolves around Earth.
+Statement B: Earth revolves around the Sun.
+Students must determine which statement is correct."
+
+Correct relation:
+CONTEXT_ONLY
+
+Reason:
+The evidence presents the claim as an alternative or proposition
+to evaluate. It does not establish that the claim is true.
+
+---
+
+CLAIM:
+"The Sun revolves around the Earth."
+
+EVIDENCE:
+"The Sun revolves around Earth."
+
+Correct relation:
+SUPPORTS
+
+Reason:
+The evidence directly asserts the proposition as a factual statement
+without qualifying it as a quotation, belief, hypothesis, example,
+question, or disputed claim.
+
+IMPORTANT:
+
+Do not treat textual repetition as evidence of truth.
+
+The analyzer must determine whether the evidence AUTHORITATIVELY
+ASSERTS the proposition, not merely whether the proposition appears
+inside the evidence.
+
 Valid explicit logical entailment may be SUPPORTS even when
 the relationship is INDIRECT.
 
@@ -1384,13 +1481,22 @@ ${evidence}
     }
 
     // Validate explanation.
+    // Validate explanation.
+    // Ollama may occasionally omit the explanation even when
+    // relation and directness are valid. Never crash the
+    // entire verification pipeline because of that.
     if (
       typeof parsed.explanation !== "string" ||
       !parsed.explanation.trim()
     ) {
-      throw new Error(
-        "Ollama returned no evidence explanation"
-      );
+      parsed.explanation =
+        parsed.relation === "SUPPORTS"
+          ? "The evidence supports the claim."
+          : parsed.relation === "CONTRADICTS"
+            ? "The evidence directly contradicts the claim."
+            : parsed.relation === "CONTEXT_ONLY"
+              ? "The evidence is related to the claim but does not establish or contradict it."
+              : "The evidence is not relevant to the claim.";
     }
     if (
       parsed.relation === "CONTRADICTS" &&
@@ -1398,6 +1504,162 @@ ${evidence}
     ) {
       parsed.directness = "DIRECT";
     }
+
+    // Qwen can occasionally produce a CONTRADICTS classification
+    // even when the evidence does not explicitly establish an
+    // incompatible fact. Verify contradiction outputs separately
+    // before allowing them into the verification pipeline.
+    if (parsed.relation === "CONTRADICTS") {
+      const contradictionCheckResponse = await fetch(
+        this.ollamaUrl,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: this.model,
+            messages: [
+              {
+                role: "system",
+                content: `
+You are a strict contradiction verifier.
+
+Determine whether ONE PIECE OF EVIDENCE explicitly contradicts ONE CLAIM.
+
+Return ONLY valid JSON:
+
+{
+  "contradicts": true,
+  "explanation": "short explanation"
+}
+
+Return "contradicts": true ONLY when the evidence explicitly states
+a factual condition that is incompatible with the claim.
+
+Return "contradicts": false when:
+
+- the evidence supports the claim;
+- the evidence repeats or lists the claim;
+- the evidence provides additional context;
+- the evidence is incomplete;
+- the evidence merely discusses the same topic;
+- the evidence describes a historical belief or misconception;
+- the evidence asks a question;
+- the evidence presents a hypothetical;
+- the evidence does not establish the opposite;
+- the apparent contradiction requires an unstated inference.
+
+CRITICAL:
+
+Do not confuse "different wording" with contradiction.
+
+Do not confuse "the evidence does not prove the claim" with contradiction.
+
+A contradiction requires an explicit incompatible factual statement.
+
+Example:
+
+CLAIM:
+"Earth is the 3rd planet in the solar system."
+
+EVIDENCE:
+"Mercury, Venus, Earth, Mars."
+
+Return:
+{
+  "contradicts": false,
+  "explanation": "The evidence lists Earth as the third planet, so it supports rather than contradicts the claim."
+}
+
+Example:
+
+CLAIM:
+"The Sun revolves around the Earth."
+
+EVIDENCE:
+"The Earth revolves around the Sun."
+
+Return:
+{
+  "contradicts": true,
+  "explanation": "The evidence states the incompatible relationship that Earth revolves around the Sun."
+}
+
+Do not make a final truth judgment about the claim.
+Only determine whether this specific evidence explicitly contradicts it.
+                `.trim(),
+              },
+              {
+                role: "user",
+                content: `
+CLAIM:
+${claimText}
+
+EVIDENCE:
+${evidence}
+                `.trim(),
+              },
+            ],
+            stream: false,
+            format: {
+              type: "object",
+              properties: {
+                contradicts: {
+                  type: "boolean",
+                },
+                explanation: {
+                  type: "string",
+                },
+              },
+              required: ["contradicts", "explanation"],
+              additionalProperties: false,
+            },
+            think: false,
+          }),
+        }
+      );
+
+      if (!contradictionCheckResponse.ok) {
+        throw new Error(
+          `Ollama contradiction verification failed with status ${contradictionCheckResponse.status}`
+        );
+      }
+
+      const contradictionData =
+        (await contradictionCheckResponse.json()) as OllamaResponse;
+
+      const contradictionContent =
+        contradictionData.message?.content;
+
+      if (!contradictionContent) {
+        throw new Error(
+          "Ollama returned empty contradiction verification"
+        );
+      }
+
+      let contradictionCheck: {
+        contradicts?: boolean;
+        explanation?: string;
+      };
+
+      try {
+        contradictionCheck = JSON.parse(contradictionContent);
+      } catch {
+        throw new Error(
+          "Ollama returned invalid contradiction verification JSON"
+        );
+      }
+
+      if (contradictionCheck.contradicts !== true) {
+        parsed.relation = "SUPPORTS";
+        parsed.directness = "DIRECT";
+        parsed.explanation =
+          contradictionCheck.explanation?.trim() ||
+          "The evidence does not explicitly contradict the claim.";
+      }
+    }
+
     return {
       relation: parsed.relation,
       directness: parsed.directness,
