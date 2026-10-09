@@ -1,14 +1,25 @@
 package com.amanvr112.satya.data.api
 
 data class VerificationResponse(
-    val message: String,
+    val message: String?,
     val data: VerificationData
 )
 
 data class VerificationData(
-    val id: String,
+    val verificationId: String,
     val extractedText: String,
-    val status: String,
-    val createdAt: String,
-    val updatedAt: String
+    val results: List<ClaimVerificationResult>
+)
+
+data class ClaimVerificationResult(
+    val claimId: String?,
+    val claim: String?,
+    val claimType: String?,
+    val assessment: ClaimAssessment?,
+    val skipped: Boolean?
+)
+
+data class ClaimAssessment(
+    val assessment: String,
+    val explanation: String
 )

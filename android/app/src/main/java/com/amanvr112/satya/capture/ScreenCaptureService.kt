@@ -1001,15 +1001,39 @@ class ScreenCaptureService : Service() {
                 "API: Verification request created"
             )
 
-            Log.d(
-                TAG,
-                "API: Request ID = ${response.data.id}"
-            )
+            
+Log.d(
+    TAG,
+    "API: Verification ID = ${response.data.verificationId}"
+)
 
-            Log.d(
-                TAG,
-                "API: Status = ${response.data.status}"
-            )
+Log.d(
+    TAG,
+    "API: Extracted text = ${response.data.extractedText}"
+)
+
+Log.d(
+    TAG,
+    "API: Claims returned = ${response.data.results.size}"
+)
+
+response.data.results.forEachIndexed { index, result ->
+    Log.d(
+        TAG,
+        "API: Claim ${index + 1} = ${result.claim.orEmpty()}"
+    )
+
+    Log.d(
+        TAG,
+        "API: Assessment = ${result.assessment?.assessment ?: "UNAVAILABLE"}"
+    )
+
+    Log.d(
+        TAG,
+        "API: Explanation = ${result.assessment?.explanation.orEmpty()}"
+    )
+}
+
 
             cleanupAndStopService()
 

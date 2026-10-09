@@ -1,6 +1,5 @@
 import { Router } from "express";
 import prisma from "../lib/prisma";
-import { aiService } from "../ai/ai.service";
 import { researchService } from "../research/research.service";
 import { evidenceAnalyzer } from "../ai/evidenceAnalyzer";
 import { evidenceAggregator } from "../verification/evidenceAggregator";
@@ -346,43 +345,21 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const claims =
-      await aiService.extractClaims(text);
+    const result =
+      await verificationService.verifyText(text);
 
-    const verification =
-      await prisma.verificationRequest.create({
-        data: {
-          extractedText: text,
-
-          claims: {
-            create: claims.map((claim) => ({
-              claim: claim.claim,
-              claimType: claim.claimType,
-              needsVerification:
-                claim.needsVerification,
-            })),
-          },
-        },
-
-        include: {
-          claims: true,
-        },
-      });
-
-    return res.status(201).json({
-      message:
-        "Verification request created",
-      data: verification,
+    return res.status(200).json({
+      message: "Verification completed",
+      data: result,
     });
   } catch (error) {
     console.error(
-      "Verification creation error:",
+      "Verification error:",
       error
     );
 
     return res.status(500).json({
-      message:
-        "Failed to create verification request",
+      message: "Verification failed",
     });
   }
 });
